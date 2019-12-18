@@ -176,11 +176,17 @@ def calculateROI(images, numimages):
     # --------------------------------------------------------------------------
     return (bgrave, bgraves, meancanvas, roitest)
 
+def flickrImport():
+    flickrimages = []
+    return flickrimages
 
 def importAndLabelImages(folder):
     # global images, dims, numimages, namearray
     print('\n')
-    path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpg"
+    # MAC
+    # path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpg"
+    # WSL
+    path = "/mnt/c/Users/Thomas/Dropbox/Media/00New/*.jpg""
     images = np.array([cv2.imread(file) for file in glob.glob(path)])
     dims = images[0].shape
     # ^^ in the future make this more robust by doing an array search for the smallest image
