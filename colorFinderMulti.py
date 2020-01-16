@@ -1,14 +1,17 @@
 # AUTHOR: THOMAS LLOYD
 # FILE: colorFinderMulti
+# data resources: National Technical University of Athens © 2008-2012
 
 import cv2
 import glob
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import time
-import statistics
-import exifread
-from pathlib import Path
+import sys
+# import statistics
+# import os
+# import exifread
+# from pathlib import Path
 
 # INSTANTIATION
 refPt1 = np.array([0, 0])
@@ -69,7 +72,7 @@ def check_array(img1, img2, img3, img1name, img2name, img3name):
     return
 
 
-# ---------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def calculateROI(images, numimages):
     # create a matrix of ROI (region of image) MATS
     rois = []
@@ -107,14 +110,6 @@ def calculateROI(images, numimages):
         blues.append(rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 0].mean()) # adds single average value to blues array
         greens.append(rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 1].mean())
         reds.append(rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 2].mean())
-
-        # roiblue = rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 0]
-        # roigreen = rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 1]
-        # roired = rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 2]
-        #
-        # blues.append(statistics.mode(roiblue))  # adds single average value to blues array
-        # greens.append(statistics.mode(roigreen))
-        # reds.append(statistics.mode(roired))
 
     # MAYBE ROOM TO ADD ANOTHER SAMPLE TYPE OTHER THAN MEAN
 
@@ -176,28 +171,28 @@ def calculateROI(images, numimages):
     # --------------------------------------------------------------------------
     return (bgrave, bgraves, meancanvas, roitest)
 
+
 def flickrImport():
     flickrimages = []
     return flickrimages
+
 
 def importAndLabelImages(folder):
     # global images, dims, numimages, namearray
     print('\n')
     # MAC
-    # path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpg"
+    path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpg"
     # WSL
-    path = "/mnt/c/Users/Thomas/Dropbox/Media/00New/*.jpg""
+    # path = "/mnt/f/" + folder + "/*.jpg"
     images = np.array([cv2.imread(file) for file in glob.glob(path)])
-    dims = images[0].shape
-    # ^^ in the future make this more robust by doing an array search for the smallest image
-    # for n in range(0, images.shape[0]):
-    #     height = images[n].shape[0]
-    #     width = images[n].shape[1]
-    #     if (width/height < 1):
-    #         images[n] = np.rot90(images[n], k=1, axes=(0, 1))
 
+    # if sizechecker(images) is False:  # false means empty
+    #     # raise Exception('The folder: ', folder, 'contains no images')
+    #     raise Exception('The folder {} contains no images'.format(folder))
+
+    dims = images[0].shape
     print("dimension of imag set: ", dims)
-    print("dimension of images storage array: ", images.shape)
+    print('\n')
     print("Import Done")
     print('\n')
 
@@ -206,15 +201,8 @@ def importAndLabelImages(folder):
     print('\n')
 
     numimages = images.shape[0]
-    # namearray = np.chararray((numimages, 4))
-    # namearray = []*[numimages, 4]
-
-    # namearray = np.empty([numimages, 4])
-
-    # namearray = np.empty([numimages])
-    # namearray = np.empty([numimages], dtype=str)
     namearray = []
-    print(namearray)
+
     # p = Path("/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder)
     # list(p.glob('**/*.jpg'))
     # ^^ for when labelling becomes important
@@ -223,7 +211,7 @@ def importAndLabelImages(folder):
     print("name array: ")
     print('\n')
     for n in range(0, numimages):
-        ## creates and extract from exif dictspyth
+        # creates and extract from exif dictspyth
         # f = open(list[n], '-')
         # exif = exifread.process_file(f)
         # ^^ for when labelling becomes important
@@ -261,10 +249,10 @@ def resizeImages(dims, images, meancanvas, numimages):
             imagesResized[n] = np.rot90(imagesResized[n], k=1, axes=(0, 1))
     imagesResized = np.array(imagesResized)
 
-    for n in range(0, images.shape[0]):
-        print("Resized image dims: ", imagesResized[n].shape)
-    print("Resized meancanvas dims: ", meancanvas.shape)
-    print("\n")
+    # for n in range(0, images.shape[0]):
+    #     print("Resized image dims: ", imagesResized[n].shape)
+    # print("Resized meancanvas dims: ", meancanvas.shape)
+    # print("\n")
 
     print("Displaying images...")
     print("\n")
@@ -284,9 +272,7 @@ def createTile(imagesResized, meancanvas):
 
     print("Printing dims of objects to be tiled: ")
     print('\n')
-    for n in range(0, objectdimslist.shape[0]):
-        print("Dims: ", objectdimslist[n])
-    print("Dims: ", meancanvas.shape)
+
     print("num_objects: ", numobjects)
     print('\n')
 
@@ -314,23 +300,30 @@ def createTile(imagesResized, meancanvas):
         # width of overall tile = width of all images and buffer thicknesses
         tileheight = 6 * (largest[0]) + 7*border
         sideedge = 6
-    # 32
+    # 16
     elif(48 < numobjects <= 192):
         tilewidth = 16*(largest[1]) + 17*border
         topedge = 16
         # width of overall tile = width of all images and buffer thicknesses
-        tileheight = 12 * (largest[0] + 10*border)
+        tileheight = 12 * (largest[0] + 13*border)
         sideedge = 12
-    # 64
+    # 32
     elif(192 < numobjects <= 768):
         tilewidth = 32*(largest[1]) + 33*border
         topedge = 32
         # width of overall tile = width of all images and buffer thicknesses
         tileheight = 24 * (largest[0] + 25*border)
         sideedge = 24
+    # 64
+    elif(768 < numobjects <= 3072):
+        topedge = 64
+        sideedge = int((topedge/4)*3)  # (48)
+        tilewidth = topedge * (largest[1] + (topedge+1)*border)
+        tileheight = sideedge * (largest[0] + (sideedge+1)*border)
 
-    print("topedge: ", topedge)
-    print("sideedge: ", sideedge)
+    print("topedge: ", type(topedge))
+
+    print("sideedge: ", type(sideedge))
 
     print("Creating the blank, black (brg zeros) canvas...")
     print('\n')
@@ -436,17 +429,26 @@ def displayImages(numimages, namearray, imagesResized, meancanvas, roitest,
                   tilecanvas, folder, start_time):
     while(1):
 
-        for n in range(0, numimages):
-            cv2.imshow(namearray[n], imagesResized[n])
+        # for n in range(0, numimages):
+            # displays individual images
+            # cv2.namedWindow(namearray[n], cv2.WINDOW_NORMAL)
+            # cv2.moveWindow(namearray[n], 300, 300)
+            # cv2.imshow(namearray[n], imagesResized[n])
 
         cv2.imshow('tot', meancanvas)
         cv2.imshow('roitest', roitest)
         # quick resize for screen
-        tilecanvas = cv2.resize(tilecanvas, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
+        # tilecanvas = cv2.resize(tilecanvas, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
+        width, height = 1280, 800
+        cv2.namedWindow('global tile', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('global tile', width, height)
+        cv2.moveWindow('global tile', 20, 20)
         cv2.imshow('global tile', tilecanvas)
         finish_time = time.time() - start_time
         print(folder, "runtime: ", finish_time)
-        cv2.waitKey(0)
+        cv2.waitKey(0)  # could add if statement here to check which city is
+        # currently being run, then if its the last city, activate the waitKey
+        # alternatively take the imshows out of the local loops
         break
 
     cv2.destroyAllWindows()
@@ -454,32 +456,42 @@ def displayImages(numimages, namearray, imagesResized, meancanvas, roitest,
     print(finish_time)
 
 
+def displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time):
+
+    for n in range(0, numimages):
+        toshow = plt.imshow(imagesResized[n])
+        plt.show(toshow)
+
+
 # CITY RUNNERS
-def toulouse():
-    # Start time
-    start_time = time.time()
-    folder = "toulouse"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    print("Toulouse BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+def runAllCities():
 
-
-
-def amsterdam():
+    citiesList = ['newyork', 'amsterdam', 'london', 'moscow', 'singapore', 'auckland', 'barcelona', 'toulouse', 'taipei', 'tokyo']
     # Start time
     start_time = time.time()
 
-    folder = "amsterdam"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    print("Amsterdam BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-
+    n = 0
+    bgravesfordisp = np.zeros([len(citiesList), 3])
+    for city in citiesList:
+        folder = city
+        try:
+            images, dims, numimages, namearray = importAndLabelImages(folder)
+            bgrave, bgraves, meancanvas, roitest = calculateROI(images,
+                                                                numimages)
+            newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+            tilecanvas = createTile(imagesResized, meancanvas)
+            bgravesfordisp[n, :] = bgrave
+            print(city, " BGR ave: ", bgrave)
+            # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+        except IndexError:
+            print("Oops!", sys.exc_info()[0], "occured for:", folder,
+                  '- image database is likely empty for this city.')
+            print('\n')
+            print("Analyzing the next city...")
+            print('\n')
+        n = n+1
+    print(bgravesfordisp)
 
 
 def newyork():
@@ -495,19 +507,131 @@ def newyork():
     print("New York BGR ave: ", bgrave)
 
 
-
-def randomimagefiles():
+def amsterdam():
     # Start time
     start_time = time.time()
 
-    folder = "randomimagefiles"
+    folder = "amsterdam"
     images, dims, numimages, namearray = importAndLabelImages(folder)
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    print("Amsterdam BGR ave: ", bgrave)
     displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def london():
+    # Start time
+    start_time = time.time()
+    folder = "london"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("London BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def moscow():
+    # Start time
+    start_time = time.time()
+    folder = "moscow"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("Moscow BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def singapore():
+    # Start time
+    start_time = time.time()
+    folder = "taipei"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("Taipei BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def auckland():
+    # Start time
+    start_time = time.time()
+    folder = "auckland"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("Auckland BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def barcelona():
+    # Start time
+    start_time = time.time()
+    folder = "toulouse"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("barcelona BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def toulouse():
+    # Start time
+    start_time = time.time()
+    folder = "toulouse"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("Toulouse BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def taipei():
+    # Start time
+    start_time = time.time()
+    folder = "toulouse"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("Taipei BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def tokyo():
+    # Start time
+    start_time = time.time()
+    folder = "tokyo"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    print("Tokyo BGR ave: ", bgrave)
+    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
+
+def randomimagefiles():
+    # Start time
+    start_time = time.time()
+    folder = "ec1m_landmark_images"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    # tilecanvas = createTile(imagesResized, meancanvas)
+    # displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("randomimagefiles BGR ave: ", bgrave)
 
+
+def sizechecker(images):
+    if images.size == 0:
+        return False
+    return True
 
 # MAIN
 # ---------------------------------------------------------------------
@@ -516,31 +640,14 @@ def randomimagefiles():
 
 
 print("---BEGINNING----")
-randomimagefiles()
+# toulouse()
+#amsterdam()
+#auckland()
+#barcelona()
+#london()
+#newyork()
+#taipei()
+# tokyo()
 # amsterdam()
 # newyork()
-
-# images, dims, numimages, namearray = importAndLabelImages()
-# bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-# newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas)
-# tilecanvas = createTile(imagesResized, meancanvas)
-# displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas
-
-# while(1):
-#
-#     for n in range(0, numimages):
-#         cv2.imshow(namearray[n], imagesResized[n])
-#
-#     cv2.imshow('tot', meancanvas)
-#     cv2.imshow('roitest', roitest)
-#     # quick resize for screen
-#     tilecanvas = cv2.resize(tilecanvas, None, fx=.125, fy=.125, interpolation=cv2.INTER_AREA)
-#     cv2.imshow('global tile', tilecanvas)
-#     finish_time = time.time() - start_time
-#     print(finish_time)
-#     cv2.waitKey(0)
-#     break
-#
-# cv2.destroyAllWindows()
-# finish_time = time.time() - start_time
-# print(finish_time)
+runAllCities()
