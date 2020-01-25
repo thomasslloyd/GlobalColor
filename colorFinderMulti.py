@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import sys
-# import statistics
+from scipy import stats
 # import os
 # import exifread
 # from pathlib import Path
@@ -464,6 +464,37 @@ def displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
         plt.show(toshow)
 
 
+def calcMode(images, numimages):
+
+    modes = np.zeros([numimages])
+
+    for n in range(0, numimages):
+        image = images[n]
+        blues = []
+        greens = []
+        reds = []
+
+        # need to create a new list here to hold the means of just this images
+        # pixel means so that we can plot every mean later on
+        # n rows and m columns, shape will be (n,m)
+
+        for x in range(0, image.shape[1]-1):
+            for y in range(0, image.shape[0]-1):
+                blues.append(image[x, y, 0])
+                greens.append(image[x, y, 1])
+                reds.append(image[x, y, 2])
+
+        # thisbluemode = stats.mode(blues)
+        # thisgreedmode = stats.mode(greens)
+        # thisredmode = stats.mode(reds)
+
+        # array containing the mode of each image
+        modes[n] = np.array([stats.mode(blues), stats.mode(greens),
+                            stats.mode(reds)])
+
+    return modes
+
+
 # CITY RUNNERS
 def runAllCities():
 
@@ -491,7 +522,11 @@ def runAllCities():
             print("Analyzing the next city...")
             print('\n')
         n = n+1
-    print(bgravesfordisp)
+    print('\n')
+    print('bgravesfordisp: ', '\n', bgravesfordisp)
+    print('\n')
+
+
 
 
 def newyork():
