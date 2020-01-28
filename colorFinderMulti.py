@@ -408,8 +408,9 @@ def createTile(imagesResized, meancanvas):
         oldfinishy = thisimagefinishy
 
         tilecount += 1
-# ------------------------------------------------------------------------------
     return tilecanvas
+
+# ------------------------------------------------------------------------------
 
 
 def testImages(images, numimages):
@@ -422,7 +423,7 @@ def testImages(images, numimages):
     print('\n')
     print("test image2: ", images[numimages-9])
     print('\n')
-# ---------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 
 def displayImages(numimages, namearray, imagesResized, meancanvas, roitest,
@@ -454,45 +455,121 @@ def displayImages(numimages, namearray, imagesResized, meancanvas, roitest,
     cv2.destroyAllWindows()
     finish_time = time.time() - start_time
     print(finish_time)
+# ------------------------------------------------------------------------------
 
 
 def displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
                      tilecanvas, folder, start_time):
 
+    print("Setting up matplotlib display....")
+    print("\n")
+
+    print("setting width and height of plot")
+    print("\n")
+
+    print("number of images being plotted: ", numimages)
+    subplotwidth = int(numimages**.5)
+
+    # protecting size of plot due to rounding
+    roundingdiff = subplotwidth - (numimages**.5)
+    if (roundingdiff < 0):
+        subplotwidth = subplotwidth + 1
+    subplotheight = subplotwidth
+
+    print("subplotwidth and height: ", subplotwidth)
+    print("\n")
+
+    # example code:
+
+# data = np.random.randn(2, 100)
+# fig, axs = plt.subplots(2, 2, )
+# axs[0, 0].hist(data[0])
+# axs[1, 0].scatter(data[0], data[1])
+# axs[0, 1].plot(data[0], data[1])
+# axs[1, 1].hist2d(data[0], data[1])
+# plt.show()
+
+    # subplot setup
+    fig, axs = plt.subplots(subplotwidth, subplotheight)
+
+    columnPlot = 0
+    rowPlot = 0
     for n in range(0, numimages):
-        toshow = plt.imshow(imagesResized[n])
-        plt.show(toshow)
+        # axs[n, m]
+        # n = columns
+        # m = rows
+        axs[columnPlot, rowPlot].imshow(cv2.cvtColor(imagesResized[n], cv2.COLOR_BGR2RGB))
+        axs[columnPlot, rowPlot].axis('off')
+        # plot figure column iterator
+        # first check if interation is complete
+
+        if (columnPlot == (subplotwidth-1)):
+            columnPlot = 0
+            rowPlot = rowPlot + 1
+            print("column plot: ", columnPlot)
+            print("row plot: ", rowPlot)
+            print("\n")
+        else:
+            columnPlot = columnPlot + 1
+            print("column plot: ", columnPlot)
+            print("row plot: ", rowPlot)
+            print("\n")
+    print("mpl iterator complete")
+    print("\n")
+    fig.suptitle(folder, fontsize=16)
+    plt.show(block=False)
+    plt.show()
+
+
+    # toshow = plt.imshow(cv2.cvtColor(imagesResized[n], cv2.COLOR_BGR2RGB))
+    # plt.show(toShow)
+# ------------------------------------------------------------------------------
 
 
 def calcMode(images, numimages):
 
-    modes = np.zeros([numimages])
+    modes = np.zeros([numimages, 3])
 
-    for n in range(0, numimages):
-        image = images[n]
+    for i in range(0, numimages):
+        # current image to calc the mode of
+        print("calculating the mode of image ", i, "...")
+        print("\n")
+        image = images[i]
+
+        # temportary lists to store the bgr values
         blues = []
         greens = []
         reds = []
 
-        # need to create a new list here to hold the means of just this images
-        # pixel means so that we can plot every mean later on
         # n rows and m columns, shape will be (n,m)
 
-        for x in range(0, image.shape[1]-1):
-            for y in range(0, image.shape[0]-1):
-                blues.append(image[x, y, 0])
-                greens.append(image[x, y, 1])
-                reds.append(image[x, y, 2])
+        for m in range(0, image.shape[0]-1):
+            for n in range(0, image.shape[1]-1):
+                blues.append(int(image[m, n, 0]))
+                greens.append(int(image[m, n, 1]))
+                reds.append(int(image[m, n, 2]))
 
-        # thisbluemode = stats.mode(blues)
-        # thisgreedmode = stats.mode(greens)
-        # thisredmode = stats.mode(reds)
+        print("number of blue pixels: ", len(blues))
+        print("number of green pixels: ", len(greens))
+        print("number of red pixels: ", len(reds))
+        print("\n")
 
         # array containing the mode of each image
-        modes[n] = np.array([stats.mode(blues), stats.mode(greens),
-                            stats.mode(reds)])
+        bluemode = stats.mode(blues)[0]
+        greenmode = stats.mode(greens)[0]
+        redmode = stats.mode(reds)[0]
+
+        print("Bluemode: ", bluemode)
+        print("Greenmode: ", greenmode)
+        print("Redmode: ", redmode)
+        print("\n")
+
+        modes[i, 0] = bluemode
+        modes[i, 1] = greenmode
+        modes[i, 2] = redmode
 
     return modes
+# ------------------------------------------------------------------------------
 
 
 # CITY RUNNERS
@@ -510,10 +587,14 @@ def runAllCities():
             images, dims, numimages, namearray = importAndLabelImages(folder)
             bgrave, bgraves, meancanvas, roitest = calculateROI(images,
                                                                 numimages)
+            # mode = calcMode(images, numimages)
             newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
             tilecanvas = createTile(imagesResized, meancanvas)
             bgravesfordisp[n, :] = bgrave
             print(city, " BGR ave: ", bgrave)
+            # print(city, " BGR mode: ", mode)
+            displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                             tilecanvas, folder, start_time)
             # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
         except IndexError:
             print("Oops!", sys.exc_info()[0], "occured for:", folder,
@@ -527,6 +608,20 @@ def runAllCities():
     print('\n')
 
 
+def test():
+    # Start time
+    start_time = time.time()
+    folder = "toulouse"
+    images, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    # bgrmode = calcMode(images, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    tilecanvas = createTile(imagesResized, meancanvas)
+    # print("Toulouse BGR ave: ", bgrmode)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+    print("Toulouse BGR ave: ", bgrave)
 
 
 def newyork():
@@ -536,10 +631,14 @@ def newyork():
     folder = "newyork"
     images, dims, numimages, namearray = importAndLabelImages(folder)
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    # mode = calcMode(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("New York BGR ave: ", bgrave)
+    # print("New York BGR mode: ", mode)
 
 
 def amsterdam():
@@ -551,8 +650,10 @@ def amsterdam():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("Amsterdam BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 
 
 def london():
@@ -563,8 +664,11 @@ def london():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("London BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 
 
 def moscow():
@@ -575,8 +679,10 @@ def moscow():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("Moscow BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 
 
 def singapore():
@@ -587,8 +693,10 @@ def singapore():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("Taipei BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 
 
 def auckland():
@@ -599,20 +707,26 @@ def auckland():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("Auckland BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
 
 
 def barcelona():
     # Start time
     start_time = time.time()
-    folder = "toulouse"
+    folder = "barcelona"
     images, dims, numimages, namearray = importAndLabelImages(folder)
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("barcelona BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
 
 
 def toulouse():
@@ -623,8 +737,11 @@ def toulouse():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("Toulouse BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
 
 
 def taipei():
@@ -635,8 +752,10 @@ def taipei():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
     print("Taipei BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 
 
 def tokyo():
@@ -647,8 +766,10 @@ def tokyo():
     bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
+    displayImagesMPL(numimages, namearray, imagesResized, meancanvas, roitest,
+                     tilecanvas, folder, start_time)
     print("Tokyo BGR ave: ", bgrave)
-    displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 
 
 def randomimagefiles():
@@ -675,14 +796,17 @@ def sizechecker(images):
 
 
 print("---BEGINNING----")
+
+test()
+
+# amsterdam()
+# auckland()
+# barcelona()
+# london()
+# newyork()
 # toulouse()
-#amsterdam()
-#auckland()
-#barcelona()
-#london()
-#newyork()
-#taipei()
+# taipei()
 # tokyo()
 # amsterdam()
 # newyork()
-runAllCities()
+# runAllCities()
