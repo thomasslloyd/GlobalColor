@@ -46,14 +46,19 @@ def log(*m):
 
 
 # -----------------------------------------------------------------------------
-def calculateROI(images, numimages):
+def calculateROI(images, numimages, ROI_BOOLEAN):
     # create a matrix of ROI (region of image) MATS
     rois = []
     print("Creating image region mats...")
     print('\n')
     for n in range(0, numimages):
         image = images[n]
-        thisroi = image[refPtMS[0]: refPtMF[0], refPtMS[1]: refPtMF[1]]
+        if (ROI_BOOLEAN is True):
+            thisroi = image[refPtMS[0]: refPtMF[0], refPtMS[1]: refPtMF[1]]
+        else:
+            refPtMS[1] = image.shape[0]
+            refPtMF[1] = image.shape[1]
+            thisroi = image[refPtMS[0]: refPtMF[0], refPtMS[1]: refPtMF[1]]
         rois.append(thisroi)
 
     print("ROI 1 (exp): ", rois[numimages-1])
@@ -152,7 +157,7 @@ def flickrImport():
     return flickrimages
 
 
-def importAndLabelImages(folder):
+def import_and_label_images(folder):
     # global images, dims, numimages, namearray
     print('\n')
     # MAC
@@ -433,8 +438,8 @@ def displayImages(numimages, namearray, imagesResized, meancanvas, roitest,
 # ------------------------------------------------------------------------------
 
 
-def display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time):
+def display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest
+                       , folder, start_time):
 
     print("BEGINNING MPL display procedure...")
     print("\n")
@@ -516,9 +521,11 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
         print("\n")
 
     else:
-        print("mean canvas set prior to np conversion: ", "\n", meancanvasset)
+        # print("mean canvas set prior to np conversion: ", "\n", meancanvasset)
+        # print('\n')
         meancanvasset = np.array(meancanvasset)
-        print("mean canvas set after to np conversion: ", "\n", meancanvasset)
+        # print("mean canvas set after to np conversion: ", "\n", meancanvasset)
+        # print('\n')
         numimages = meancanvasset.shape[0]
         print("number of canvas' being displayed: ", numimages)
         print("\n")
@@ -530,6 +537,7 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
     print("\n")
 
     print("number of images being plotted: ", numimages)
+    print("\n")
     subplotwidth = int(numimages**.5)
 
     # protecting size of plot due to rounding
@@ -596,6 +604,7 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
 
 
 def color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywise):
+
     print("3D color space plot beginning...")
     print('\n')
     print("bgraves: ", bgraves)
@@ -684,18 +693,20 @@ def runAllCities():
     meancanvasset = []
     canvasnamearray = []
     citywise = False
+    ROI_BOOLEAN = False
+    bgravesfordisp = np.zeros([len(citiesList), 3])
 
     n = 0
-    bgravesfordisp = np.zeros([len(citiesList), 3])
     for city in citiesList:
         folder = city
         try:
-            images, dims, numimages, namearray = importAndLabelImages(folder)
+            images, dims, numimages, namearray = import_and_label_images(folder)
             bgrave, bgraves, meancanvas, roitest = calculateROI(images,
-                                                                numimages)
+                                                                numimages,
+                                                                ROI_BOOLEAN)
             # mode = calcMode(images, numimages)
             newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-            tilecanvas = createTile(imagesResized, meancanvas)
+            # tilecanvas = createTile(imagesResized, meancanvas)
 
             # specifically to append the meancanvasset with city specific mat
             meancanvasset, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray)
@@ -703,7 +714,7 @@ def runAllCities():
             print(city, " BGR ave: ", bgrave)
             # print(city, " BGR mode: ", mode)
             display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                               tilecanvas, folder, start_time)
+                               folder, start_time)
             # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
         except IndexError:
             print("Oops!", sys.exc_info()[0], "occured for:", folder,
@@ -719,15 +730,15 @@ def runAllCities():
 
     # displaying all mean canvas' using matplotlib
     try:
-        display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, citywise)
+        display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, citywise, folder)
     except IndexError:
-        print("something went wrong")
+        print("something went wrong while displaying the canvas set")
 
     # displaying all mean canvas' using matplotlib
     try:
         color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywise)
     except IndexError:
-        print("something went wrong")
+        print("something went wrong while running the color space plot")
 
 
 def test():
@@ -735,18 +746,18 @@ def test():
     meancanvasset = []
     canvasnamearray = []
     citywise = True  # to denote the nature of the mean canvas plot (intracity here)
+    ROI_BOOLEAN = False
     start_time = time.time()
     folder = "toulouse"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    images, dims, numimages, namearray = import_and_label_images(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages, ROI_BOOLEAN)
     # bgrmode = calcMode(images, numimages)
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
+    # tilecanvas = createTile(imagesResized, meancanvas)
     print("Toulouse BGR ave: ", bgrave)
     # print("Toulouse BGR ave: ", bgrmode)
     meancanvasset, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
+    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest, folder, start_time)
     # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, citywise, folder)
     color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywise)
@@ -931,8 +942,8 @@ def sizechecker(images):
 # ---------------------------------------------------------------------
 # read image from file
 # dims = 436 × 1026
-
-print("---BEGINNING----")
+print('\n')
+print("---BEGINNING---")
 
 test()
 
@@ -947,3 +958,7 @@ test()
 # amsterdam()
 # newyork()
 # runAllCities()
+
+print("---COLORFINDERMULTI COMPLTETE---")
+print("\n")
+print("\n")
