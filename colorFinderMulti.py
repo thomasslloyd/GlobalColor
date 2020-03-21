@@ -55,13 +55,19 @@ def calculateROI(images, numimages, ROI_BOOLEAN):
         image = images[n]
         if (ROI_BOOLEAN is True):
             thisroi = image[refPtMS[0]: refPtMF[0], refPtMS[1]: refPtMF[1]]
+            rois.append(thisroi)
         else:
-            refPtMS[1] = image.shape[0]
+            refPtMS[0] = 0
+            refPtMS[1] = 0
+
+            refPtMF[0] = image.shape[0]
             refPtMF[1] = image.shape[1]
             thisroi = image[refPtMS[0]: refPtMF[0], refPtMS[1]: refPtMF[1]]
-        rois.append(thisroi)
+            rois.append(thisroi)
 
-    print("ROI 1 (exp): ", rois[numimages-1])
+    print("ROI 1 (example): ", rois[numimages-1])
+    print('\n')
+    print("ROI siz (example: )", refPtMS, ",", refPtMF)
     print('\n')
     print("ROI size", rois[numimages-1].shape)
     print('\n')
@@ -160,12 +166,27 @@ def flickrImport():
 def import_and_label_images(folder):
     # global images, dims, numimages, namearray
     print('\n')
-    # MAC
-    path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpeg"
-    # WSL
-    # path = "/mnt/f/" + folder + "/*.jpg"
-    images = np.array([cv2.imread(file) for file in glob.glob(path)])
+    # MAC --------
+    # path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpeg"
 
+    # MAC HD --------
+    #path = "/Volumes/2018_SSD_TL/GlobalColorImages/" + folder +"/"+ folder +"_flickr" + "/*.jpg"
+    folder_path = "/Volumes/2018_SSD_TL/GlobalColorImages/" + folder +"/*"
+
+    # creating a list of the folder paths for this city
+    folder_list = glob.glob(folder_path)  # creates a list of folders available for this citywise
+    print("folder_list: ", folder_list)
+    print("\n")
+
+    # use fol
+    image_paths = []
+    for folder in folder_list:
+        image_paths = image_paths + glob.glob(folder + "/*.jpg")
+
+    # WSL --------
+    # path = "/mnt/f/" + folder + "/*.jpg"
+    # images = np.array([cv2.imread(file) for file in glob.glob(path)])
+    images = np.array([cv2.imread(file) for file in image_paths])
     # if sizechecker(images) is False:  # false means empty
     #     # raise Exception('The folder: ', folder, 'contains no images')
     #     raise Exception('The folder {} contains no images'.format(folder))
@@ -595,7 +616,7 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
     print("\n")
 
     if (citywise is True):
-        title = 'Mean color of toles of ' + folder
+        title = 'Mean ' + folder + ' Color Tiles'
         fig.suptitle(title, fontsize=16)
     else:
         fig.suptitle('Mean tiles of all cities considered', fontsize=16)
@@ -693,7 +714,7 @@ def runAllCities():
     meancanvasset = []
     canvasnamearray = []
     citywise = False
-    ROI_BOOLEAN = False
+    ROI_BOOLEAN = True
     bgravesfordisp = np.zeros([len(citiesList), 3])
 
     n = 0
@@ -712,6 +733,7 @@ def runAllCities():
             meancanvasset, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray)
             bgravesfordisp[n, :] = bgrave
             print(city, " BGR ave: ", bgrave)
+            print("\n")
             # print(city, " BGR mode: ", mode)
             display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
                                folder, start_time)
@@ -746,7 +768,7 @@ def test():
     meancanvasset = []
     canvasnamearray = []
     citywise = True  # to denote the nature of the mean canvas plot (intracity here)
-    ROI_BOOLEAN = False
+    ROI_BOOLEAN = True
     start_time = time.time()
     folder = "toulouse"
     images, dims, numimages, namearray = import_and_label_images(folder)
@@ -755,6 +777,7 @@ def test():
     newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
     # tilecanvas = createTile(imagesResized, meancanvas)
     print("Toulouse BGR ave: ", bgrave)
+    print("\n")
     # print("Toulouse BGR ave: ", bgrmode)
     meancanvasset, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray)
     display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest, folder, start_time)
@@ -959,6 +982,6 @@ test()
 # newyork()
 # runAllCities()
 
-print("---COLORFINDERMULTI COMPLTETE---")
+print("---COLOR FINDER MULTI COMPLTETE---")
 print("\n")
 print("\n")

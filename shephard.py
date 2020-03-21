@@ -8,7 +8,8 @@ import urllib.request
 # make private
 api_key = '55d426a59efdae8b630aaa3afbac4000'
 api_secret = '72f4bde28a867f41'
-keyword1 = 'tokyo'
+keyword1 = 'toulouse'
+
 
 def initialize(api_key, api_secret):
     flickr = flickrapi.FlickrAPI(api_key, api_secret)
@@ -21,16 +22,17 @@ def pullimages(flickr):
                          tag_mode='all',
                          tags=keyword1,
                          extras='url_c',
-                         per_page=500,        
+                         per_page=500,
                          sort='relevance')
     urls = []
     for i, photo in enumerate(photos):
         url = photo.get('url_c')
         urls.append(url)
         # get 50 urls
-        if i > 1000:
+        if i > 5000:
             break
     return urls
+
 
 def fakeurls():
     urls = []
@@ -41,23 +43,22 @@ def fakeurls():
     urls.append('https://live.staticflickr.com/7328/27511837520_12d32ef9bb_c.jpg')
 
     for n in range(0, len(urls)):
-        url = urls[n] 
+        url = urls[n]
         if type(url) == str:
             print("url" + str(n) + ": " + url)
-    
-    
     return urls
 
 
-def saveimages(urls):
+def saveimages(urls, keyword1):
     print('beginning url download')
     for n in range(0, len(urls)):
         url = urls[n]
         if type(url) == str:
             # urllib.request.urlretrieve(url, '/mnt/f/amsterdam/ams' + str(n) + '.jpg')
             # urllib.request.urlretrieve(url, '/mnt/f/newyork/ny' + str(n) + '.jpg') # zero indexed
-            urllib.request.urlretrieve(url, '/mnt/f/tokyo/tko' + str(n) + '.jpg') # zero indexed
-
+            # urllib.request.urlretrieve(url, '/Dropbox/Documents//tko' + str(n) + '.jpg') # zero indexed
+            urllib.request.urlretrieve(url, '/Volumes/2018_SSD_TL/GlobalColorImages/' + keyword1 + '_flickr/' + keyword1 + '_flickr_' + str(n) + '.jpg')
+            # urllib.request.urlretrieve(url, '/Users/thomaslloyd/Desktop/colorFinderMultiImages/' + str(n) + '.jpg')
         # else raise Exception('url type is not a string')
 
 
@@ -65,6 +66,6 @@ def saveimages(urls):
 flickr = initialize(api_key, api_secret)
 # urls = fakeurls()
 urls = pullimages(flickr)
-saveimages(urls)
+saveimages(urls, keyword1)
 print('number of urls stored: ' + str(len(urls)))
 print(keyword1 + ' images downloaded.')
