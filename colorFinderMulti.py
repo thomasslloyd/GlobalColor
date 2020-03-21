@@ -170,7 +170,7 @@ def import_and_label_images(folder):
     # path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpeg"
 
     # MAC HD --------
-    #path = "/Volumes/2018_SSD_TL/GlobalColorImages/" + folder +"/"+ folder +"_flickr" + "/*.jpg"
+    # path = "/Volumes/2018_SSD_TL/GlobalColorImages/" + folder +"/"+ folder +"_flickr" + "/*.jpg"
     folder_path = "/Volumes/2018_SSD_TL/GlobalColorImages/" + folder +"/*"
 
     # creating a list of the folder paths for this city
@@ -178,7 +178,7 @@ def import_and_label_images(folder):
     print("folder_list: ", folder_list)
     print("\n")
 
-    # use fol
+    # use folder list to unpack contained images
     image_paths = []
     for folder in folder_list:
         image_paths = image_paths + glob.glob(folder + "/*.jpg")
@@ -186,10 +186,8 @@ def import_and_label_images(folder):
     # WSL --------
     # path = "/mnt/f/" + folder + "/*.jpg"
     # images = np.array([cv2.imread(file) for file in glob.glob(path)])
+
     images = np.array([cv2.imread(file) for file in image_paths])
-    # if sizechecker(images) is False:  # false means empty
-    #     # raise Exception('The folder: ', folder, 'contains no images')
-    #     raise Exception('The folder {} contains no images'.format(folder))
 
     dims = images[0].shape
     print("dimension of imag set: ", dims)
@@ -502,7 +500,8 @@ def display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest
         # m = rows
         axs[columnPlot, rowPlot].imshow(cv2.cvtColor(imagesResized[n], cv2.COLOR_BGR2RGB))
         axs[columnPlot, rowPlot].axis('off')
-        axs[columnPlot, rowPlot].set_title(namearray[n])
+        # axs[columnPlot, rowPlot].set_title(namearray[n])
+
         # plot figure column iterator
         # first check if interation is complete
 
@@ -591,12 +590,12 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
             # axs[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
             axs[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
             axs[columnPlot, rowPlot].axis('off')
-            axs[columnPlot, rowPlot].set_title(namearray[n])
+            # axs[columnPlot, rowPlot].set_title(namearray[n])
         else:
             # for the case when plotting city total (international) mean mats
             axs[columnPlot, rowPlot].imshow(cv2.cvtColor(meancanvasset[n], cv2.COLOR_BGR2RGB))
             axs[columnPlot, rowPlot].axis('off')
-            axs[columnPlot, rowPlot].set_title(canvasnamearray[n])
+            # axs[columnPlot, rowPlot].set_title(canvasnamearray[n])
             # plot figure column iterator
             # first check if interation is complete
 
@@ -645,6 +644,7 @@ def color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywis
     ax.set_ylabel('G')
     ax.set_zlabel('R')
 
+    fig.suptitle('All means plotted on R G B', fontsize=16)
     plt.show()
     print('3D color space plot complete')
     print('\n')
