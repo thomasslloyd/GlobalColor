@@ -46,13 +46,13 @@ def log(*m):
 
 
 # -----------------------------------------------------------------------------
-def calculateROI(images, numimages, ROI_BOOLEAN):
+def calculateROI(imagesRGB, numimages, ROI_BOOLEAN):
     # create a matrix of ROI (region of image) MATS
     rois = []
     print("Creating image region mats...")
     print('\n')
     for n in range(0, numimages):
-        image = images[n]
+        image = imagesRGB[n]
         if (ROI_BOOLEAN is True):
             thisroi = image[refPtMS[0]: refPtMF[0], refPtMS[1]: refPtMF[1]]
             rois.append(thisroi)
@@ -76,7 +76,7 @@ def calculateROI(images, numimages, ROI_BOOLEAN):
 
     # --------------------------------------------------------------------------
     # quick test segment
-    roitest = images[1]
+    roitest = imagesRGB[1]
     roitest = roitest[0:300, 0:300]
     roitest = rois[1]
 
@@ -87,6 +87,10 @@ def calculateROI(images, numimages, ROI_BOOLEAN):
     reds = []
     greens = []
 
+    hues = []
+    saturations = []
+    values = []
+
     print("Creating BGR arrays")
     print('\n')
     for n in range(0, numimages):
@@ -95,67 +99,102 @@ def calculateROI(images, numimages, ROI_BOOLEAN):
         greens.append(rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 1].mean())
         reds.append(rois[n][0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 2].mean())
 
+        # bgr -> HSV conversion of roi (smallest conversion stage)
+        roihsv = cv2.cvtColor(rois[n], cv2.COLOR_BGR2HSV)
+
+        hues.append(roihsv[0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 0].mean()) # adds single average value to blues array
+        saturations.append(roihsv[0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 1].mean())
+        values.append(roihsv[0:refPtMF[0]-refPtMS[0], 0:refPtMF[1]-refPtMS[1], 2].mean())
+
     blues = np.array(blues)  # np conversion after using append for effeciency
     greens = np.array(greens)
     reds = np.array(reds)
 
+    hues = np.array(hues)  # np conversion after using append for effeciency
+    saturations = np.array(saturations)
+    values = np.array(values)
+
     print("blue shape: ", blues.shape)
+    print("hues shape: ", hues.shape)
     print('\n')
 
-    print('Creating imagewise bgr ave storage...')
+    print('Creating imagewise BGR and HSV ave storage...')
     print('\n')
+
     # bgr avrerages of each image, stored in bgraves
     bgraves = np.empty([3, numimages])
+    hsvaves = np.empty([3, numimages])
+
     bgraves[0, :] = blues
     bgraves[1, :] = greens
     bgraves[2, :] = reds
+
+    hsvaves[0, :] = hues
+    hsvaves[1, :] = saturations
+    hsvaves[2, :] = values
+
     print("BGR aves sample: ", bgraves[:, 0])
+    print("HSV aves sample: ", hsvaves[:, 0])
     print('\n')
     print("Number of images featured in BGR aves: ", bgraves.shape[0])
+    print("Number of images featured in HSV aves: ", hsvaves.shape[0])
     print('\n')
 
     print('Overlaying individual mean color rectangles on top of images...')
     print('\n')
 
     for n in range(0, numimages):
-        cv2.rectangle(images[n], (refPtMS[0], refPtMS[1]), (refPtMF[0], refPtMF[1]), bgraves[:, n], -1)
+        cv2.rectangle(imagesRGB[n], (refPtMS[0], refPtMS[1]), (refPtMF[0], refPtMF[1]), bgraves[:, n], -1)
 
     # MOVES FROM IMAGEWISE TO GLOBAL BGR ANALYSIS
     blueave = np.sum(blues)/len(blues)
     greenave = np.sum(greens)/len(greens)
     redave = np.sum(reds)/len(reds)
 
+    hueave = np.sum(hues)/len(hues)
+    saturationave = np.sum(saturations)/len(saturations)
+    valueave = np.sum(values)/len(values)
+
     print('Creating global average array...')
     print('\n')
     bgrave = np.array([blueave, greenave, redave])
+    hsvave = np.array([hueave, saturationave, valueave])
+
     print("global bgr ave: ", bgrave)
+    print("global hsv ave: ", hsvave)
     print('\n')
-    print("bgr aves deets: ", (bgrave.shape))
+
+    print("bgr aves details: ", (bgrave.shape))
+    print("hsv aves details: ", (hsvave.shape))
     print('\n')
 
     # division to pre-empt the image resizing
-    canvaswidth = int((images[0].shape[1])/4)
-    canvasheight = int((images[0].shape[0])/4)
+    canvaswidth = int((imagesRGB[0].shape[1])/4)
+    canvasheight = int((imagesRGB[0].shape[0])/4)
 
     # Create a black imagen (open CV MAT)
     print('Creating black ave canvas...')
     print('\n')
-    meancanvas = np.zeros([canvasheight, canvaswidth, 3], np.uint8)
-    print("Elements of mean canvas array before: ", meancanvas[:, :])
+    meancanvasRGB = np.zeros([canvasheight, canvaswidth, 3], np.uint8)
+    meancanvasHSV = np.zeros([canvasheight, canvaswidth, 3], np.uint8)
+    print("Elements of mean canvas array before: ", meancanvasRGB[:, :])
     print("\n")
-    meancanvas[:, :] = bgrave
-    print("Elements of mean canvas array after: ", meancanvas[:, :])
+    meancanvasRGB[:, :] = bgrave
+    meancanvasHSV[:, :] = hsvave
+    print("Elements of mean RGB canvas array after: ", meancanvasRGB[:, :])
+    print("Elements of mean HSV canvas array after: ", meancanvasHSV[:, :])
     print("\n")
 
     # now create a matrix to simulate an image1
     print('Creating entire image of the mean color...')
     print('\n')
-    cv2.rectangle(meancanvas, (0, canvaswidth), (0, canvasheight), (bgrave), -1)
-    print('Mean canvas shape: ', meancanvas.shape)
+    cv2.rectangle(meancanvasRGB, (0, canvaswidth), (0, canvasheight), (bgrave), -1)
+    print('Mean canvas RGB shape: ', meancanvasRGB.shape)
+    print('Mean canvas HSV shape: ', meancanvasHSV.shape)
     print('\n')
 
     # --------------------------------------------------------------------------
-    return (bgrave, bgraves, meancanvas, roitest)
+    return (bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest)
 
 
 def flickrImport():
@@ -175,7 +214,8 @@ def import_and_label_images(folder):
 
     # creating a list of the folder paths for this city
     folder_list = glob.glob(folder_path)  # creates a list of folders available for this citywise
-    print("folder_list: ", folder_list)
+    print("Folders being accessed: ")
+    print("--> ", folder_list)
     print("\n")
 
     # use folder list to unpack contained images
@@ -187,63 +227,53 @@ def import_and_label_images(folder):
     # path = "/mnt/f/" + folder + "/*.jpg"
     # images = np.array([cv2.imread(file) for file in glob.glob(path)])
 
-    images = np.array([cv2.imread(file) for file in image_paths])
+    imagesRGB = np.array([cv2.imread(file) for file in image_paths])
 
-    dims = images[0].shape
-    print("dimension of imag set: ", dims)
-    print('\n')
-    print("Import Done")
-    print('\n')
+    try:
+        dims = imagesRGB[0].shape
+        print("dimension of imag set: ", dims)
+        print('\n')
+        print("Import Done")
+        print('\n')
 
-    # image names
-    print('generating image names...')
-    print('\n')
+        # image names
+        print('generating image names...')
+        print('\n')
 
-    numimages = images.shape[0]
-    namearray = []
+        numimages = imagesRGB.shape[0]
+        namearray = []
 
-    # p = Path("/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder)
-    # list(p.glob('**/*.jpg'))
-    # ^^ for when labelling becomes important
+        # place exif in name arrays
+        print("name array: ")
+        print('\n')
+        for n in range(0, numimages):
+            namearray.append("img" + str(n))
+        print(namearray)
+        print('\n')
+        print("Naming Done")
+        print('\n')
 
-    # place exif in name arrays
-    print("name array: ")
-    print('\n')
-    for n in range(0, numimages):
-        # creates and extract from exif dictspyth
-        # f = open(list[n], '-')
-        # exif = exifread.process_file(f)
-        # ^^ for when labelling becomes important
+    except IndexError:
+            print("No images found during folder search...")
 
-        namearray.append("img" + str(n))
-
-        # namearray[n, 1] = exif['Image Make']
-        # namearray[n, 2] = exif['Image Resolution']
-        # namearray[n, 3] = exif['Image Datetime']
-        # ^^ for when labelling becomes important
-
-    print(namearray)
-    print('\n')
-    print("Naming Done")
-    print('\n')
-
-    return (images, dims, numimages, namearray)
+    return (imagesRGB, dims, numimages, namearray)
 # ---------------------------------------------------------------------
 
 
-def resizeImages(dims, images, meancanvas, numimages):
+def resizeImages(dims, imagesRGB, meancanvasRGB, meancanvasHSV, numimages):
     newwidth = int((dims[0]/4))
     newheight = int((dims[1]/4))
     print("Resizing Images...")
     print("\n")
     imagesResized = []
     for n in range(0, numimages):
-        imagesResized.append(cv2.resize(images[n], None, fx=.125, fy=.125, interpolation=cv2.INTER_AREA))
-    meancanvas = cv2.resize(meancanvas, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
+        imagesResized.append(cv2.resize(imagesRGB[n], None, fx=.125, fy=.125, interpolation=cv2.INTER_AREA))
+    meancanvasRGB = cv2.resize(meancanvasRGB, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
+    meancanvasHSV = cv2.resize(meancanvasHSV, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
 
-    for n in range(0, images.shape[0]):
-        height = images[n].shape[0]
-        width = images[n].shape[1]
+    for n in range(0, imagesRGB.shape[0]):
+        height = imagesRGB[n].shape[0]
+        width = imagesRGB[n].shape[1]
         if (width/height < 1):
             imagesResized[n] = np.rot90(imagesResized[n], k=1, axes=(0, 1))
     imagesResized = np.array(imagesResized)
@@ -255,7 +285,7 @@ def resizeImages(dims, images, meancanvas, numimages):
 
     print("Displaying images...")
     print("\n")
-    return (newwidth, newheight, imagesResized, meancanvas)
+    return (newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV)
 # ------------------------------------------------------------------------------
 
 
@@ -412,15 +442,15 @@ def createTile(imagesResized, meancanvas):
 # ------------------------------------------------------------------------------
 
 
-def testImages(images, numimages):
+def testImages(imagesRGB, numimages):
     print("Importing test set from image 1...")
     print('\n')
-    imgtest = images[0]
+    imgtest = imagesRGB[0]
     print("test check: ", imgtest.shape)
     print('\n')
     print("test image1: ", imgtest)
     print('\n')
-    print("test image2: ", images[numimages-9])
+    print("test image2: ", imagesRGB[numimages-9])
     print('\n')
 # ------------------------------------------------------------------------------
 
@@ -702,10 +732,10 @@ def calcMode(images, numimages):
 # ------------------------------------------------------------------------------
 
 
-def mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray):
-    meancanvasset.append(meancanvas)
+def mean_canvas_stacker(meancanvasRGB, meancanvassetRGB, folder, canvasnamearray):
+    meancanvassetRGB.append(meancanvasRGB)
     canvasnamearray.append(folder)
-    return meancanvasset, canvasnamearray
+    return meancanvassetRGB, canvasnamearray
 # ------------------------------------------------------------------------------
 
 
@@ -716,7 +746,7 @@ def runAllCities():
     citiesList = ['newyork', 'amsterdam', 'london', 'moscow', 'singapore', 'auckland', 'barcelona', 'toulouse', 'taipei', 'tokyo']
     # Start time
     start_time = time.time()
-    meancanvasset = []
+    meancanvassetRGB = []
     canvasnamearray = []
     citywise = False
     ROI_BOOLEAN = True
@@ -726,23 +756,25 @@ def runAllCities():
     for city in citiesList:
         folder = city
         try:
-            images, dims, numimages, namearray = import_and_label_images(folder)
-            bgrave, bgraves, meancanvas, roitest = calculateROI(images,
+            imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
+            bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB,
                                                                 numimages,
                                                                 ROI_BOOLEAN)
             # mode = calcMode(images, numimages)
-            newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+            newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
             # tilecanvas = createTile(imagesResized, meancanvas)
 
             # specifically to append the meancanvasset with city specific mat
-            meancanvasset, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray)
+            meancanvassetRGB, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvassetRGB, folder, canvasnamearray)
             bgravesfordisp[n, :] = bgrave
             print(city, " BGR ave: ", bgrave)
             print("\n")
+
             # print(city, " BGR mode: ", mode)
             display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
                                folder, start_time)
             # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+
         except IndexError:
             print("Oops!", sys.exc_info()[0], "occured for:", folder,
                   '- image database is likely empty for this city.')
@@ -770,25 +802,28 @@ def runAllCities():
 
 def test():
     # Start time
-    meancanvasset = []
+    meancanvassetRGB = []
     canvasnamearray = []
     citywise = True  # to denote the nature of the mean canvas plot (intracity here)
     ROI_BOOLEAN = True
     start_time = time.time()
     folder = "toulouse"
-    images, dims, numimages, namearray = import_and_label_images(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages, ROI_BOOLEAN)
+
+    imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
+
+    bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB, numimages, ROI_BOOLEAN)
     # bgrmode = calcMode(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims, imagesRGB, meancanvasRGB, meancanvasHSV, numimages)
     # tilecanvas = createTile(imagesResized, meancanvas)
     print("Toulouse BGR ave: ", bgrave)
+    print("Toulouse HSV ave: ", hsvave)
     print("\n")
     # print("Toulouse BGR ave: ", bgrmode)
-    meancanvasset, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvasset, folder, canvasnamearray)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest, folder, start_time)
+    meancanvassetRGB, canvasnamearray = mean_canvas_stacker(meancanvasRGB, meancanvassetRGB, folder, canvasnamearray)
+    display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
     # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, citywise, folder)
-    color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywise)
+    display_canvas_set_MPL(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise, folder)
+    color_space_plot(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise)
 # ------------------------------------------------------------------------------
 
 
@@ -797,10 +832,10 @@ def newyork():
     start_time = time.time()
 
     folder = "newyork"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
+    imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB, numimages)
     # mode = calcMode(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
     display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
                        tilecanvas, folder, start_time)
@@ -815,9 +850,9 @@ def amsterdam():
     start_time = time.time()
 
     folder = "amsterdam"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    imagesRGB, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
     display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
                        tilecanvas, folder, start_time)
@@ -830,9 +865,9 @@ def london():
     # Start time
     start_time = time.time()
     folder = "london"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
+    imagesRGB, dims, numimages, namearray = importAndLabelImages(folder)
+    bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB, numimages)
+    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
     tilecanvas = createTile(imagesResized, meancanvas)
 
     display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
