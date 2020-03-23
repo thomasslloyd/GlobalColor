@@ -533,6 +533,7 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
     # And hence for international, the overall city mean will be plotted.
 
     if (citywise is True):
+        # bgrave tiles of this cities images
         meancanvasset = bgraves
         print("mean canvas set from bgraves: ", "\n", meancanvasset)
         print("\n")
@@ -543,7 +544,11 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
     else:
         # print("mean canvas set prior to np conversion: ", "\n", meancanvasset)
         # print('\n')
+        
         meancanvasset = np.array(meancanvasset)
+        deltas = np.full((meancanvasset.shape[0], meancanvasset.shape[1], 3), -127.5)
+        print(deltas)
+
         # print("mean canvas set after to np conversion: ", "\n", meancanvasset)
         # print('\n')
         numimages = meancanvasset.shape[0]
