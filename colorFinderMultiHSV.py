@@ -228,7 +228,7 @@ def import_and_label_images(folder):
     # images = np.array([cv2.imread(file) for file in glob.glob(path)])
 
     imagesRGB = np.array([cv2.imread(file) for file in image_paths])
-
+    dims = 0
     try:
         dims = imagesRGB[0].shape
         print("dimension of imag set: ", dims)
@@ -556,7 +556,8 @@ def display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest
 # ------------------------------------------------------------------------------
 
 
-def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, citywise, folder):
+def display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder):
+    # (meancanvassetHSV, namearray, canvasnamearray, hsvave, citywise, folder)
 
     # To be used for either international canvas plot or city wise canvas plot.
     # Hence for city wise, every image will have a mean canvas plotted.
@@ -564,26 +565,25 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
 
     if (citywise is True):
         # bgrave tiles of this cities images
-        meancanvasset = bgraves
-        print("mean canvas set from bgraves: ", "\n", meancanvasset)
-        print("\n")
-        numimages = meancanvasset.shape[1]
-        print("number of canvas' being displayed: ", numimages)
-        print("\n")
-
+        meancanvassetRGB = bgraves
+        meancanvassetHSV = hsvaves
+        # print("mean canvas set from bgraves: ", "\n", meancanvassetRGB)
+        # print("mean canvas set from bgraves: ", "\n", meancanvassetHSV)
+        # print("\n")
     else:
-        # print("mean canvas set prior to np conversion: ", "\n", meancanvasset)
-        # print('\n')
 
-        meancanvasset = np.array(meancanvasset)
-        deltas = np.full((meancanvasset.shape[0], meancanvasset.shape[1], 3), -127.5)
+        meancanvassetRGB = np.array(meancanvassetRGB)
+        meancanvassetHSV = np.array(meancanvassetHSV)
+
+        # complete COLOR DELTA analysis
+        deltas = np.full((meancanvassetHSV.shape[0], meancanvassetHSV.shape[1], 3), -127.5)
         print(deltas)
 
-        # print("mean canvas set after to np conversion: ", "\n", meancanvasset)
-        # print('\n')
-        numimages = meancanvasset.shape[0]
-        print("number of canvas' being displayed: ", numimages)
-        print("\n")
+    numimagesRGB = meancanvassetRGB.shape[1]
+    numimagesHSV = meancanvassetHSV.shape[1]
+    print("number of canvas' being displayed RGB: ", numimagesRGB)
+    print("number of canvas' being displayed RGB: ", numimagesHSV)
+    print("\n")
 
     print("Setting up matplotlib display....")
     print("\n")
@@ -591,12 +591,10 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
     print("setting width and height of plot")
     print("\n")
 
-    print("number of images being plotted: ", numimages)
-    print("\n")
-    subplotwidth = int(numimages**.5)
+    subplotwidth = int(numimagesHSV**.5)
 
     # protecting size of plot due to rounding
-    roundingdiff = subplotwidth - (numimages**.5)
+    roundingdiff = subplotwidth - (numimagesHSV**.5)
     if (roundingdiff < 0):
         subplotwidth = subplotwidth + 1
     subplotheight = subplotwidth
@@ -605,34 +603,22 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
     print("\n")
 
     # subplot setup
-    fig, axs = plt.subplots(subplotwidth, subplotheight)
+    fig1, axs1 = plt.subplots(subplotwidth, subplotheight)
     # returns a 2D array of subplots ^^
 
     columnPlot = 0
     rowPlot = 0
-    for n in range(0, numimages):
+    for n in range(0, numimagesHSV):
         # axs[n, m]
         # n = columns
         # m = rows
         if (citywise is True):
-            # for the case when plotting intra city mean mats
-            # thisimage = np.full((200, 200, 3), bgraves[:, n])
             thisimage = np.float32(np.full((200, 200, 3), bgraves[:, n]/255))
-            # print("intra city BGR canvas: ", thisimage)
-            # print("intra city BGR canvas size: ", thisimage.shape)
-            # print("intra city BGR canvas dtype: ", type(thisimage))
-            # print("intra city BGR element dtype: ", type(thisimage[0, 0, 0]))
-            # axs[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
-            axs[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
-            axs[columnPlot, rowPlot].axis('off')
-            # axs[columnPlot, rowPlot].set_title(namearray[n])
+            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
+            axs1[columnPlot, rowPlot].axis('off')
         else:
-            # for the case when plotting city total (international) mean mats
-            axs[columnPlot, rowPlot].imshow(cv2.cvtColor(meancanvasset[n], cv2.COLOR_BGR2RGB))
-            axs[columnPlot, rowPlot].axis('off')
-            # axs[columnPlot, rowPlot].set_title(canvasnamearray[n])
-            # plot figure column iterator
-            # first check if interation is complete
+            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(meancanvassetRGB[n], cv2.COLOR_BGR2RGB))
+            axs1[columnPlot, rowPlot].axis('off')
 
         if (columnPlot == (subplotwidth-1)):
             columnPlot = 0
@@ -646,19 +632,19 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
             print("row plot: ", rowPlot)
             print("\n")
 
-    print("mpl iterator complete")
+    print("RGB mpl iterator complete")
     print("\n")
 
     if (citywise is True):
         title = 'Mean ' + folder + ' Color Tiles'
-        fig.suptitle(title, fontsize=16)
+        fig1.suptitle(title, fontsize=16)
     else:
-        fig.suptitle('Mean tiles of all cities considered', fontsize=16)
+        fig1.suptitle('Mean tiles of all cities considered', fontsize=16)
     plt.show()
 # ------------------------------------------------------------------------------
 
 
-def color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywise):
+def color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise):
 
     print("3D color space plot beginning...")
     print('\n')
@@ -667,19 +653,31 @@ def color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywis
     print("bgraves type: ", type(bgraves))
     print('\n')
 
-    plotx = bgraves[0, :]
-    ploty = bgraves[1, :]
-    plotz = bgraves[2, :]
+    plotx1 = bgraves[0, :]
+    ploty1 = bgraves[1, :]
+    plotz1 = bgraves[2, :]
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(plotx, ploty, plotz, marker='o')
+    plotx2 = hsvaves[0, :]
+    ploty2 = hsvaves[1, :]
+    plotz2 = hsvaves[2, :]
 
+
+    fig1 = plt.figure()
+    ax = fig1.add_subplot(111, projection='3d')
+    ax.scatter(plotx1, ploty1, plotz1, marker='o')
     ax.set_xlabel('B')
     ax.set_ylabel('G')
     ax.set_zlabel('R')
+    fig1.suptitle('All means plotted on R G B', fontsize=16)
 
-    fig.suptitle('All means plotted on R G B', fontsize=16)
+    fig2 = plt.figure()
+    ax = fig2.add_subplot(111, projection='3d')
+    ax.scatter(plotx2, ploty2, plotz2, marker='o')
+    ax.set_xlabel('H')
+    ax.set_ylabel('S')
+    ax.set_zlabel('V')
+    fig2.suptitle('All means plotted on H S V', fontsize=16)
+
     plt.show()
     print('3D color space plot complete')
     print('\n')
@@ -732,10 +730,14 @@ def calcMode(images, numimages):
 # ------------------------------------------------------------------------------
 
 
-def mean_canvas_stacker(meancanvasRGB, meancanvassetRGB, folder, canvasnamearray):
+def mean_canvas_stacker(meancanvasRGB, meancanvasHSV, meancanvassetRGB,
+                        meancanvassetHSV, folder, canvasnamearray):
+
     meancanvassetRGB.append(meancanvasRGB)
+    meancanvassetHSV.append(meancanvasHSV)
     canvasnamearray.append(folder)
-    return meancanvassetRGB, canvasnamearray
+
+    return meancanvassetRGB, meancanvassetHSV, canvasnamearray
 # ------------------------------------------------------------------------------
 
 
@@ -757,15 +759,21 @@ def runAllCities():
         folder = city
         try:
             imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
-            bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB,
-                                                                numimages,
-                                                                ROI_BOOLEAN)
+            bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB,
+                                                                                                   numimages,
+                                                                                                   ROI_BOOLEAN)
             # mode = calcMode(images, numimages)
-            newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
+            newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims,
+                                                                                            imagesRGB,
+                                                                                            meancanvas,
+                                                                                            numimages)
             # tilecanvas = createTile(imagesResized, meancanvas)
 
             # specifically to append the meancanvasset with city specific mat
-            meancanvassetRGB, canvasnamearray = mean_canvas_stacker(meancanvas, meancanvassetRGB, folder, canvasnamearray)
+            meancanvassetRGB, canvasnamearray = mean_canvas_stacker(meancanvasRGB,
+                                                                    meancanvassetRGB,
+                                                                    folder,
+                                                                    canvasnamearray)
             bgravesfordisp[n, :] = bgrave
             print(city, " BGR ave: ", bgrave)
             print("\n")
@@ -789,13 +797,13 @@ def runAllCities():
 
     # displaying all mean canvas' using matplotlib
     try:
-        display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, citywise, folder)
+        display_canvas_set_MPL(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise, folder)
     except IndexError:
         print("something went wrong while displaying the canvas set")
 
     # displaying all mean canvas' using matplotlib
     try:
-        color_space_plot(meancanvasset, namearray, canvasnamearray, bgraves, citywise)
+        color_space_plot(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise)
     except IndexError:
         print("something went wrong while running the color space plot")
 
@@ -803,6 +811,7 @@ def runAllCities():
 def test():
     # Start time
     meancanvassetRGB = []
+    meancanvassetHSV = []
     canvasnamearray = []
     citywise = True  # to denote the nature of the mean canvas plot (intracity here)
     ROI_BOOLEAN = True
@@ -811,19 +820,34 @@ def test():
 
     imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
 
-    bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB, numimages, ROI_BOOLEAN)
+    bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB,
+                                                                                            numimages,
+                                                                                            ROI_BOOLEAN)
     # bgrmode = calcMode(images, numimages)
-    newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims, imagesRGB, meancanvasRGB, meancanvasHSV, numimages)
+    newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims,
+                                                                                    imagesRGB,
+                                                                                    meancanvasRGB,
+                                                                                    meancanvasHSV,
+                                                                                    numimages)
     # tilecanvas = createTile(imagesResized, meancanvas)
     print("Toulouse BGR ave: ", bgrave)
     print("Toulouse HSV ave: ", hsvave)
     print("\n")
     # print("Toulouse BGR ave: ", bgrmode)
-    meancanvassetRGB, canvasnamearray = mean_canvas_stacker(meancanvasRGB, meancanvassetRGB, folder, canvasnamearray)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
+    meancanvassetRGB, meancanvassetHSV, canvasnamearray = mean_canvas_stacker(meancanvasRGB,
+                                                                              meancanvasHSV,
+                                                                              meancanvassetRGB,
+                                                                              meancanvassetHSV,
+                                                                              folder,
+                                                                              canvasnamearray)
+
     # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    display_canvas_set_MPL(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise, folder)
-    color_space_plot(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise)
+    display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
+
+    display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
+
+    color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise)
+
 # ------------------------------------------------------------------------------
 
 
