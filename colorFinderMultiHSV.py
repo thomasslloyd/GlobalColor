@@ -204,6 +204,8 @@ def flickrImport():
 
 def import_and_label_images(folder):
     # global images, dims, numimages, namearray
+    numimages = 0
+    namearray = []
     print('\n')
     # MAC --------
     # path = "/Users/thomaslloyd/Desktop/colorFinderMultiImages/" + folder + "/*.jpeg"
@@ -221,7 +223,7 @@ def import_and_label_images(folder):
     # use folder list to unpack contained images
     image_paths = []
     for folder in folder_list:
-        image_paths = image_paths + glob.glob(folder + "/*.jpg")
+        image_paths = image_paths + glob.glob(folder + "/*.jpg") + glob.glob(folder + "/*.jpeg")
 
     # WSL --------
     # path = "/mnt/f/" + folder + "/*.jpg"
@@ -241,7 +243,6 @@ def import_and_label_images(folder):
         print('\n')
 
         numimages = imagesRGB.shape[0]
-        namearray = []
 
         # place exif in name arrays
         print("name array: ")
@@ -255,6 +256,7 @@ def import_and_label_images(folder):
 
     except IndexError:
             print("No images found during folder search...")
+            print("\n")
 
     return (imagesRGB, dims, numimages, namearray)
 # ---------------------------------------------------------------------
@@ -267,21 +269,17 @@ def resizeImages(dims, imagesRGB, meancanvasRGB, meancanvasHSV, numimages):
     print("\n")
     imagesResized = []
     for n in range(0, numimages):
-        imagesResized.append(cv2.resize(imagesRGB[n], None, fx=.125, fy=.125, interpolation=cv2.INTER_AREA))
+        imagesResized.append(cv2.resize(imagesRGB[n], None, fx=.01, fy=.01, interpolation=cv2.INTER_AREA))
     meancanvasRGB = cv2.resize(meancanvasRGB, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
     meancanvasHSV = cv2.resize(meancanvasHSV, None, fx=.5, fy=.5, interpolation=cv2.INTER_AREA)
 
+    # ROT8R
     for n in range(0, imagesRGB.shape[0]):
         height = imagesRGB[n].shape[0]
         width = imagesRGB[n].shape[1]
         if (width/height < 1):
             imagesResized[n] = np.rot90(imagesResized[n], k=1, axes=(0, 1))
     imagesResized = np.array(imagesResized)
-
-    # for n in range(0, images.shape[0]):
-    #     print("Resized image dims: ", imagesResized[n].shape)
-    # print("Resized meancanvas dims: ", meancanvas.shape)
-    # print("\n")
 
     print("Displaying images...")
     print("\n")
@@ -599,7 +597,7 @@ def display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvas
         subplotwidth = subplotwidth + 1
     subplotheight = subplotwidth
 
-    print("subplotwidth and height: ", subplotwidth)
+    print("subplot width and height: ", subplotwidth)
     print("\n")
 
     # subplot setup
@@ -613,11 +611,14 @@ def display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvas
         # n = columns
         # m = rows
         if (citywise is True):
-            thisimage = np.float32(np.full((200, 200, 3), bgraves[:, n]/255))
-            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
+            # thisimage = np.float32(np.full((200, 200, 3), rgbaves[:, n]/255))
+            thisimage = np.float32(np.full((200, 200, 3), hsvaves[:, n]))
+            print("***testing thisimage: ", thisimage)
+            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_HSV2RGB))
             axs1[columnPlot, rowPlot].axis('off')
         else:
-            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(meancanvassetRGB[n], cv2.COLOR_BGR2RGB))
+            thisimage = np.float32(np.full((200, 200, 3), meancanvassetHSV[n]))
+            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_HSV2RGB))
             axs1[columnPlot, rowPlot].axis('off')
 
         if (columnPlot == (subplotwidth-1)):
@@ -661,7 +662,6 @@ def color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamear
     ploty2 = hsvaves[1, :]
     plotz2 = hsvaves[2, :]
 
-
     fig1 = plt.figure()
     ax = fig1.add_subplot(111, projection='3d')
     ax.scatter(plotx1, ploty1, plotz1, marker='o')
@@ -677,6 +677,18 @@ def color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamear
     ax.set_ylabel('S')
     ax.set_zlabel('V')
     fig2.suptitle('All means plotted on H S V', fontsize=16)
+
+    fig3 = plt.figure()
+    ax = fig3.add_subplot(111)
+    num_bins = 179
+    cm = plt.cm.hsv
+    n, bins, patches = ax.hist(plotx2, num_bins, color='red',  ec='black', alpha=0.5)
+
+    for i, p in enumerate(patches):
+        plt.setp(p, 'facecolor', cm(i/179))  # notice the i/25
+
+    ax.set_xlabel('H')
+    fig3.suptitle('(H)SV histogram', fontsize=16)
 
     plt.show()
     print('3D color space plot complete')
@@ -749,39 +761,43 @@ def runAllCities():
     # Start time
     start_time = time.time()
     meancanvassetRGB = []
+    meancanvassetHSV = []
     canvasnamearray = []
     citywise = False
     ROI_BOOLEAN = True
     bgravesfordisp = np.zeros([len(citiesList), 3])
+    hsvavesfordisp = np.zeros([len(citiesList), 3])
 
     n = 0
     for city in citiesList:
         folder = city
         try:
             imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
+
             bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB,
                                                                                                    numimages,
                                                                                                    ROI_BOOLEAN)
             # mode = calcMode(images, numimages)
             newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims,
                                                                                             imagesRGB,
-                                                                                            meancanvas,
+                                                                                            meancanvasRGB,
+                                                                                            meancanvasRGB,
                                                                                             numimages)
             # tilecanvas = createTile(imagesResized, meancanvas)
 
             # specifically to append the meancanvasset with city specific mat
-            meancanvassetRGB, canvasnamearray = mean_canvas_stacker(meancanvasRGB,
-                                                                    meancanvassetRGB,
-                                                                    folder,
-                                                                    canvasnamearray)
+            meancanvassetRGB, meancanvassetHSV, canvasnamearray = mean_canvas_stacker(meancanvasRGB,
+                                                                                      meancanvasHSV,
+                                                                                      meancanvassetRGB,
+                                                                                      meancanvassetHSV,
+                                                                                      folder,
+                                                                                      canvasnamearray)
             bgravesfordisp[n, :] = bgrave
+            hsvavesfordisp[n, :] = hsvave
             print(city, " BGR ave: ", bgrave)
             print("\n")
 
-            # print(city, " BGR mode: ", mode)
-            display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                               folder, start_time)
-            # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+            # display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
 
         except IndexError:
             print("Oops!", sys.exc_info()[0], "occured for:", folder,
@@ -793,19 +809,20 @@ def runAllCities():
 
     print('\n')
     print('All BGR city means: ', '\n', bgravesfordisp)
+    print('All HSV city means: ', '\n', hsvavesfordisp)
     print('\n')
 
     # displaying all mean canvas' using matplotlib
     try:
-        display_canvas_set_MPL(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise, folder)
+        display_canvas_set_MPL(bgravesfordisp, hsvavesfordisp, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
     except IndexError:
-        print("something went wrong while displaying the canvas set")
+        print("something went wrong while displaying the canvas set 1")
 
     # displaying all mean canvas' using matplotlib
     try:
-        color_space_plot(meancanvassetRGB, namearray, canvasnamearray, bgraves, citywise)
+        color_space_plot(bgravesfordisp, hsvavesfordisp, namearray, canvasnamearray, bgraves, hsvaves, citywise)
     except IndexError:
-        print("something went wrong while running the color space plot")
+        print("something went wrong while running the color space plot 2")
 
 
 def test():
@@ -1032,7 +1049,7 @@ def sizechecker(images):
 print('\n')
 print("---BEGINNING---")
 
-test()
+# test()
 
 # amsterdam()
 # auckland()
@@ -1044,7 +1061,7 @@ test()
 # tokyo()
 # amsterdam()
 # newyork()
-# runAllCities()
+runAllCities()
 
 print("---COLOR FINDER MULTI COMPLTETE---")
 print("\n")
