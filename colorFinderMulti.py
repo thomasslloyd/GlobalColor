@@ -588,11 +588,6 @@ def display_canvas_set_MPL(meancanvasset, namearray, canvasnamearray, bgraves, c
             # for the case when plotting intra city mean mats
             # thisimage = np.full((200, 200, 3), bgraves[:, n])
             thisimage = np.float32(np.full((200, 200, 3), bgraves[:, n]/255))
-            # print("intra city BGR canvas: ", thisimage)
-            # print("intra city BGR canvas size: ", thisimage.shape)
-            # print("intra city BGR canvas dtype: ", type(thisimage))
-            # print("intra city BGR element dtype: ", type(thisimage[0, 0, 0]))
-            # axs[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
             axs[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_BGR2RGB))
             axs[columnPlot, rowPlot].axis('off')
             # axs[columnPlot, rowPlot].set_title(namearray[n])

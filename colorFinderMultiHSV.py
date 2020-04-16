@@ -3,9 +3,9 @@
 # data resources: National Technical University of Athens © 2008-2012
 
 import cv2
-import glob
+import glob2
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
+# from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
 import sys
@@ -136,8 +136,8 @@ def calculateROI(imagesRGB, numimages, ROI_BOOLEAN):
     print("BGR aves sample: ", bgraves[:, 0])
     print("HSV aves sample: ", hsvaves[:, 0])
     print('\n')
-    print("Number of images featured in BGR aves: ", bgraves.shape[0])
-    print("Number of images featured in HSV aves: ", hsvaves.shape[0])
+    print("Number of images featured in BGR aves: ", bgraves.shape[1])
+    print("Number of images featured in HSV aves: ", hsvaves.shape[1])
     print('\n')
 
     print('Overlaying individual mean color rectangles on top of images...')
@@ -197,11 +197,6 @@ def calculateROI(imagesRGB, numimages, ROI_BOOLEAN):
     return (bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest)
 
 
-def flickrImport():
-    flickrimages = []
-    return flickrimages
-
-
 def import_and_label_images(folder):
     # global images, dims, numimages, namearray
     numimages = 0
@@ -215,7 +210,7 @@ def import_and_label_images(folder):
     folder_path = "/Volumes/2018_SSD_TL/GlobalColorImages/" + folder +"/*"
 
     # creating a list of the folder paths for this city
-    folder_list = glob.glob(folder_path)  # creates a list of folders available for this citywise
+    folder_list = glob2.glob(folder_path)  # creates a list of folders available for this citywise
     print("Folders being accessed: ")
     print("--> ", folder_list)
     print("\n")
@@ -223,14 +218,15 @@ def import_and_label_images(folder):
     # use folder list to unpack contained images
     image_paths = []
     for folder in folder_list:
-        image_paths = image_paths + glob.glob(folder + "/*.jpg") + glob.glob(folder + "/*.jpeg")
+        image_paths = image_paths + glob2.glob(folder + "/*.jpg") + glob2.glob(folder + "/*.jpeg")
 
     # WSL --------
     # path = "/mnt/f/" + folder + "/*.jpg"
     # images = np.array([cv2.imread(file) for file in glob.glob(path)])
 
     imagesRGB = np.array([cv2.imread(file) for file in image_paths])
-    dims = 0
+    dims = [0, 0]
+
     try:
         dims = imagesRGB[0].shape
         print("dimension of imag set: ", dims)
@@ -574,8 +570,9 @@ def display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvas
         meancanvassetHSV = np.array(meancanvassetHSV)
 
         # complete COLOR DELTA analysis
-        deltas = np.full((meancanvassetHSV.shape[0], meancanvassetHSV.shape[1], 3), -127.5)
-        print(deltas)
+        # deltas = np.full((meancanvassetHSV.shape[0], meancanvassetHSV.shape[1], 3), -127.5)
+        # print(deltas)
+        # print('\n')
 
     numimagesRGB = meancanvassetRGB.shape[1]
     numimagesHSV = meancanvassetHSV.shape[1]
@@ -606,19 +603,42 @@ def display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvas
 
     columnPlot = 0
     rowPlot = 0
-    for n in range(0, numimagesHSV):
-        # axs[n, m]
-        # n = columns
-        # m = rows
-        if (citywise is True):
+
+    if (citywise is True):  # the case where only one city is being analysed
+        for n in range(0, numimagesHSV):
+            # axs[n, m]
+            # n = columns
+            # m = rows
             # thisimage = np.float32(np.full((200, 200, 3), rgbaves[:, n]/255))
             thisimage = np.float32(np.full((200, 200, 3), hsvaves[:, n]))
-            print("***testing thisimage: ", thisimage)
-            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_HSV2RGB))
+            divisionmat = np.float32(np.full((200, 200, 3), 255))
+            print('**testing division format: ', divisionmat)  # because floats, imshow needs 0-1 bgr range
+
+            thisimage = (cv2.cvtColor(thisimage, cv2.COLOR_HSV2RGB))/(divisionmat)
+            print('**testing thisimage: ', thisimage)
+
+            axs1[columnPlot, rowPlot].imshow(thisimage)  # !!!!
             axs1[columnPlot, rowPlot].axis('off')
-        else:
-            thisimage = np.float32(np.full((200, 200, 3), meancanvassetHSV[n]))
-            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_HSV2RGB))
+
+            if (columnPlot == (subplotwidth-1)):
+                columnPlot = 0
+                rowPlot = rowPlot + 1
+                print("column plot: ", columnPlot)
+                print("row plot: ", rowPlot)
+                print("\n")
+            else:
+                columnPlot = columnPlot + 1
+                print("column plot: ", columnPlot)
+                print("row plot: ", rowPlot)
+                print("\n")
+
+            title = 'Mean ' + folder + ' Color Tiles'
+            fig1.suptitle(title, fontsize=16)
+
+    else:
+        for n in range(0, meancanvassetHSV):
+            thisimage = np.float32(np.full((200, 200, 3), meancanvassetHSV[:, n]))  # convert to 'ave'
+            axs1[columnPlot, rowPlot].imshow(cv2.cvtColor(thisimage, cv2.COLOR_HSV2RGB)/255)
             axs1[columnPlot, rowPlot].axis('off')
 
         if (columnPlot == (subplotwidth-1)):
@@ -632,15 +652,11 @@ def display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvas
             print("column plot: ", columnPlot)
             print("row plot: ", rowPlot)
             print("\n")
+        fig1.suptitle('Mean tiles of all cities considered', fontsize=16)
 
-    print("RGB mpl iterator complete")
+    print("HSV mpl iterator complete")
     print("\n")
 
-    if (citywise is True):
-        title = 'Mean ' + folder + ' Color Tiles'
-        fig1.suptitle(title, fontsize=16)
-    else:
-        fig1.suptitle('Mean tiles of all cities considered', fontsize=16)
     plt.show()
 # ------------------------------------------------------------------------------
 
@@ -748,6 +764,11 @@ def mean_canvas_stacker(meancanvasRGB, meancanvasHSV, meancanvassetRGB,
     meancanvassetRGB.append(meancanvasRGB)
     meancanvassetHSV.append(meancanvasHSV)
     canvasnamearray.append(folder)
+    print("******mean canvas stacker")
+    print("folder: ", folder)
+    print("meancanvasRGB: ", meancanvasRGB)
+    print("meancanvasHSV: ", meancanvasHSV)
+    print("meancanvassetHSV: ", meancanvassetHSV)
 
     return meancanvassetRGB, meancanvassetHSV, canvasnamearray
 # ------------------------------------------------------------------------------
@@ -767,6 +788,10 @@ def runAllCities():
     ROI_BOOLEAN = True
     bgravesfordisp = np.zeros([len(citiesList), 3])
     hsvavesfordisp = np.zeros([len(citiesList), 3])
+
+    # quick fix for exception exit that avoids declaration - aim to solve this in objectification
+    bgraves = np.zeros([1, 1])
+    hsvaves = np.zeros([1, 1])
 
     n = 0
     for city in citiesList:
@@ -797,6 +822,7 @@ def runAllCities():
             print(city, " BGR ave: ", bgrave)
             print("\n")
 
+            # Displays the images of the city in this loop
             # display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
 
         except IndexError:
@@ -813,16 +839,19 @@ def runAllCities():
     print('\n')
 
     # displaying all mean canvas' using matplotlib
-    try:
-        display_canvas_set_MPL(bgravesfordisp, hsvavesfordisp, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
-    except IndexError:
-        print("something went wrong while displaying the canvas set 1")
+    display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
+    # try:
+    #     display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
+    # except IndexError:
+    #     print("something went wrong while displaying the canvas set 1")
+    #     print('\n ')
 
     # displaying all mean canvas' using matplotlib
     try:
-        color_space_plot(bgravesfordisp, hsvavesfordisp, namearray, canvasnamearray, bgraves, hsvaves, citywise)
+        color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise)
     except IndexError:
         print("something went wrong while running the color space plot 2")
+        print('\n ')
 
 
 def test():
@@ -835,36 +864,41 @@ def test():
     start_time = time.time()
     folder = "toulouse"
 
-    imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
+    try:
+        imagesRGB, dims, numimages, namearray = import_and_label_images(folder)
 
-    bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB,
-                                                                                            numimages,
-                                                                                            ROI_BOOLEAN)
-    # bgrmode = calcMode(images, numimages)
-    newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims,
-                                                                                    imagesRGB,
-                                                                                    meancanvasRGB,
-                                                                                    meancanvasHSV,
-                                                                                    numimages)
-    # tilecanvas = createTile(imagesResized, meancanvas)
-    print("Toulouse BGR ave: ", bgrave)
-    print("Toulouse HSV ave: ", hsvave)
-    print("\n")
-    # print("Toulouse BGR ave: ", bgrmode)
-    meancanvassetRGB, meancanvassetHSV, canvasnamearray = mean_canvas_stacker(meancanvasRGB,
-                                                                              meancanvasHSV,
-                                                                              meancanvassetRGB,
-                                                                              meancanvassetHSV,
-                                                                              folder,
-                                                                              canvasnamearray)
+        bgrave, hsvave, bgraves, hsvaves, meancanvasRGB, meancanvasHSV, roitest = calculateROI(imagesRGB,
+                                                                                               numimages,
+                                                                                               ROI_BOOLEAN)
+        # bgrmode = calcMode(images, numimages)
+        newwidth, newheight, imagesResized, meancanvasRGB, meancanvasHSV = resizeImages(dims,
+                                                                                        imagesRGB,
+                                                                                        meancanvasRGB,
+                                                                                        meancanvasHSV,
+                                                                                        numimages)
+        # tilecanvas = createTile(imagesResized, meancanvas)
+        print("Toulouse BGR ave: ", bgrave)
+        print("Toulouse HSV ave: ", hsvave)
+        print("\n")
+        # print("Toulouse BGR ave: ", bgrmode)
+        meancanvassetRGB, meancanvassetHSV, canvasnamearray = mean_canvas_stacker(meancanvasRGB,
+                                                                                  meancanvasHSV,
+                                                                                  meancanvassetRGB,
+                                                                                  meancanvassetHSV,
+                                                                                  folder,
+                                                                                  canvasnamearray)
 
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
+        # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
+        # display_Images_MPL(numimages, namearray, imagesResized, meancanvasRGB, roitest, folder, start_time)
 
-    display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
+        display_canvas_set_MPL(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise, folder)
 
-    color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise)
+        # color_space_plot(meancanvassetRGB, meancanvassetHSV, namearray, canvasnamearray, bgraves, hsvaves, citywise)
 
+    except IndexError:
+        print("Oops!", sys.exc_info()[0], "occured for:", folder,
+              '- image database is likely empty for this city.')
+        print('\n')
 # ------------------------------------------------------------------------------
 
 
@@ -883,143 +917,6 @@ def newyork():
     # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
     print("New York BGR ave: ", bgrave)
     # print("New York BGR mode: ", mode)
-# ------------------------------------------------------------------------------
-
-
-def amsterdam():
-    # Start time
-    start_time = time.time()
-
-    folder = "amsterdam"
-    imagesRGB, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("Amsterdam BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def london():
-    # Start time
-    start_time = time.time()
-    folder = "london"
-    imagesRGB, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(imagesRGB, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, imagesRGB, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("London BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def moscow():
-    # Start time
-    start_time = time.time()
-    folder = "moscow"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("Moscow BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def singapore():
-    # Start time
-    start_time = time.time()
-    folder = "taipei"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("Taipei BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def auckland():
-    # Start time
-    start_time = time.time()
-    folder = "auckland"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("Auckland BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def barcelona():
-    # Start time
-    start_time = time.time()
-    folder = "barcelona"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("barcelona BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def toulouse():
-    # Start time
-    start_time = time.time()
-    folder = "toulouse"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-    print("Toulouse BGR ave: ", bgrave)
-# ------------------------------------------------------------------------------
-
-
-def taipei():
-    # Start time
-    start_time = time.time()
-    folder = "toulouse"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    print("Taipei BGR ave: ", bgrave)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
-# ------------------------------------------------------------------------------
-
-
-def tokyo():
-    # Start time
-    start_time = time.time()
-    folder = "tokyo"
-    images, dims, numimages, namearray = importAndLabelImages(folder)
-    bgrave, bgraves, meancanvas, roitest = calculateROI(images, numimages)
-    newwidth, newheight, imagesResized, meancanvas = resizeImages(dims, images, meancanvas, numimages)
-    tilecanvas = createTile(imagesResized, meancanvas)
-    display_Images_MPL(numimages, namearray, imagesResized, meancanvas, roitest,
-                       tilecanvas, folder, start_time)
-    print("Tokyo BGR ave: ", bgrave)
-    # displayImages(numimages, namearray, imagesResized, meancanvas, roitest, tilecanvas, folder, start_time)
 # ------------------------------------------------------------------------------
 
 
@@ -1049,7 +946,7 @@ def sizechecker(images):
 print('\n')
 print("---BEGINNING---")
 
-# test()
+test()
 
 # amsterdam()
 # auckland()
@@ -1061,7 +958,7 @@ print("---BEGINNING---")
 # tokyo()
 # amsterdam()
 # newyork()
-runAllCities()
+# runAllCities()
 
 print("---COLOR FINDER MULTI COMPLTETE---")
 print("\n")
